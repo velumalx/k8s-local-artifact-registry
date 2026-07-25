@@ -1,0 +1,33 @@
+# values/artifactory-values.yaml
+#
+# Overrides for the jfrog/artifactory-oss chart, tuned for a single-node
+# Docker Desktop Kubernetes cluster. See:
+# docs/superpowers/specs/2026-07-24-jfrog-artifactory-oss-k8s-design.md
+artifactory:
+  # Use the embedded Derby database instead of the chart's bundled Postgres.
+  postgresql:
+    enabled: false
+
+  # We front Artifactory with our own ingress-nginx release (see
+  # scripts/install-ingress.sh) instead of the chart's bundled nginx +
+  # LoadBalancer service.
+  nginx:
+    enabled: false
+
+  ingress:
+    enabled: true
+    hosts:
+      - artifactory.local
+    className: nginx
+
+  artifactory:
+    replicaCount: 1
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1"
