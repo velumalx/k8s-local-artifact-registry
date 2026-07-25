@@ -515,8 +515,9 @@ their namespaces, returning the cluster to its prior state.
 ## What's deployed
 
 - Single-replica Artifactory OSS (`jfrog/artifactory-oss` Helm chart),
-  embedded Derby database, no TLS, no HA — intended for local
-  development, not production use.
+  PostgreSQL DB via the chart's bundled Postgres subchart (embedded Derby
+  is not viable for this chart version — see spec), no TLS, no HA —
+  intended for local development, not production use.
 - `ingress-nginx` as the ingress controller, since Docker Desktop
   Kubernetes does not ship one by default.
 - Persistence via a 5Gi PVC on Docker Desktop's default `hostpath`
