@@ -12,6 +12,9 @@ artifactory:
   # Docker Desktop.
   postgresql:
     enabled: true
+    primary:
+      persistence:
+        size: 5Gi
 
   # We front Artifactory with our own ingress-nginx release (see
   # scripts/install-ingress.sh) instead of the chart's bundled nginx +
@@ -24,6 +27,9 @@ artifactory:
     hosts:
       - artifactory.local
     className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
 
   artifactory:
     replicaCount: 1

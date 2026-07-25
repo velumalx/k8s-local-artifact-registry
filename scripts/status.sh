@@ -21,6 +21,11 @@ fi
 NAMESPACE="artifactory"
 HOST="artifactory.local"
 
+if ! kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
+  echo "FAIL: namespace '$NAMESPACE' not found — run ./scripts/deploy.sh first." >&2
+  exit 1
+fi
+
 echo "== Pods in namespace '$NAMESPACE' =="
 kubectl -n "$NAMESPACE" get pods
 
@@ -46,7 +51,8 @@ echo ""
 echo "== Health check: http://$HOST/router/api/v1/system/readiness =="
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
   --resolve "$HOST:80:127.0.0.1" \
-  "http://$HOST/router/api/v1/system/readiness" || echo "000")"
+  "http://$HOST/router/api/v1/system/readiness" || true)"
+HTTP_CODE="${HTTP_CODE:-000}"
 
 if [ "$HTTP_CODE" = "200" ]; then
   echo "PASS: Artifactory readiness endpoint responded 200 OK."

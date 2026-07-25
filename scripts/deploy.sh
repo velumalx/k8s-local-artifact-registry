@@ -20,10 +20,11 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VALUES_FILE="$SCRIPT_DIR/../values/artifactory-values.yaml"
 
-helm repo add jfrog https://charts.jfrog.io >/dev/null 2>&1 || true
+helm repo add jfrog https://charts.jfrog.io --force-update >/dev/null 2>&1 || true
 helm repo update jfrog
 
 helm upgrade --install artifactory jfrog/artifactory-oss \
+  --version 107.146.29 \
   --namespace artifactory \
   --create-namespace \
   -f "$VALUES_FILE" \

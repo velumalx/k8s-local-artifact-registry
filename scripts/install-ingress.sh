@@ -17,10 +17,11 @@ if [ "$CONTEXT" != "docker-desktop" ]; then
   exit 1
 fi
 
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update >/dev/null 2>&1 || true
 helm repo update ingress-nginx
 
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --version 4.15.1 \
   --namespace ingress-nginx \
   --create-namespace \
   --wait --timeout 5m

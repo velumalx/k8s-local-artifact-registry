@@ -40,8 +40,8 @@ Traffic flow: browser → `http://artifactory.local` (resolved via a manual
 `hosts` file entry pointing at `127.0.0.1`) → ingress-nginx controller →
 Artifactory Service → Artifactory pod.
 
-Persistence uses a PersistentVolumeClaim backed by Docker Desktop's default
-`hostpath` StorageClass, for both the Artifactory pod and the chart's bundled
+Persistence uses a PersistentVolumeClaim backed by the cluster's default
+StorageClass, for both the Artifactory pod and the chart's bundled
 PostgreSQL pod. The deployment runs a single replica with modest resource
 requests/limits sized for a laptop, not a production cluster.
 
@@ -63,8 +63,11 @@ jfrog-artifactory-oss/
 Each script is standalone bash:
 
 - `set -euo pipefail` in every script.
-- Verifies `docker`, `kubectl`, and `helm` are on `PATH` before doing
-  anything, with a clear error naming the missing tool.
+- Verifies the tools it actually invokes are on `PATH` before doing
+  anything, with a clear error naming the missing tool: `install-ingress.sh`
+  and `deploy.sh` check `docker`, `kubectl`, and `helm`; `status.sh` checks
+  `kubectl` and `curl` (no `docker`/`helm` calls); `teardown.sh` checks
+  `kubectl` and `helm` (no `docker` calls).
 - Verifies `kubectl config current-context` matches Docker Desktop's context
   (`docker-desktop`) before applying anything, to avoid accidentally
   targeting the wrong cluster.
@@ -82,7 +85,7 @@ Each script is standalone bash:
    (`127.0.0.1 artifactory.local`) and the URL to browse.
 3. `./scripts/status.sh` — runs `kubectl wait` for pod readiness, checks the
    Ingress resource exists, and curls
-   `http://artifactory.local/router/api/v1/system/health` through the
+   `http://artifactory.local/router/api/v1/system/readiness` through the
    ingress, printing a pass/fail summary.
 4. `./scripts/teardown.sh` — uninstalls the `artifactory` Helm release,
    deletes the `artifactory` namespace, and uninstalls the `ingress-nginx`

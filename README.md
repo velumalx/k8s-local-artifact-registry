@@ -11,7 +11,8 @@ for the full design.
 
 - Docker Desktop with the Kubernetes integration enabled, set as the
   current kubectl context (`docker-desktop`).
-- `helm` (v3) and `kubectl` on your `PATH`.
+- `docker` (Docker Desktop itself — how the cluster runs), `helm` (v3),
+  `kubectl`, and `curl` on your `PATH`.
 
 ## Quick start
 
@@ -32,6 +33,9 @@ Windows hosts file path: `C:\Windows\System32\drivers\etc\hosts`.
 
 Then browse to `http://artifactory.local`. Default login is
 `admin` / `password` — you'll be forced to change it on first login.
+Change it immediately: Docker Desktop's ingress-nginx Service (type
+LoadBalancer) publishes the port on the host, not just loopback, so
+other processes/users on the machine can reach it.
 
 `status.sh` itself does not require the hosts file entry; it uses
 `curl --resolve` to verify the deployment directly.
@@ -45,6 +49,10 @@ Then browse to `http://artifactory.local`. Default login is
 Removes both the `artifactory` and `ingress-nginx` Helm releases and
 their namespaces, returning the cluster to its prior state.
 
+Note: this removes the `ingress-nginx` release/namespace unconditionally.
+If you already had an unrelated `ingress-nginx` install on this cluster
+before running `install-ingress.sh`, teardown will delete that too.
+
 ## What's deployed
 
 - Single-replica Artifactory OSS (`jfrog/artifactory-oss` Helm chart),
@@ -53,8 +61,8 @@ their namespaces, returning the cluster to its prior state.
   intended for local development, not production use.
 - `ingress-nginx` as the ingress controller, since Docker Desktop
   Kubernetes does not ship one by default.
-- Persistence via a 5Gi PVC on Docker Desktop's default `hostpath`
-  StorageClass.
+- Persistence via 5Gi PVCs (Artifactory + PostgreSQL) on the cluster's
+  default StorageClass.
 
 ## Configuring repositories
 
