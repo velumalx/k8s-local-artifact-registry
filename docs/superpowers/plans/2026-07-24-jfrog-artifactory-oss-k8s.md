@@ -4,14 +4,14 @@
 
 **Goal:** Stand up JFrog Artifactory OSS as a container registry on the local Docker Desktop Kubernetes cluster, reachable at `http://artifactory.local`, using repeatable shell scripts.
 
-**Architecture:** Two Helm releases — `ingress-nginx` (official chart) and `artifactory` (JFrog's `artifactory-oss` chart) — installed into their own namespaces on the `docker-desktop` kube-context. A values file disables the chart's bundled nginx/Postgres in favor of embedded Derby and our own ingress-nginx, and configures an Ingress at `artifactory.local`. Four standalone bash scripts (`install-ingress.sh`, `deploy.sh`, `status.sh`, `teardown.sh`) wrap the Helm/kubectl calls.
+**Architecture:** Two Helm releases — `ingress-nginx` (official chart) and `artifactory` (JFrog's `artifactory-oss` chart) — installed into their own namespaces on the `docker-desktop` kube-context. A values file disables the chart's bundled nginx in favor of our own ingress-nginx, keeps the chart's bundled Postgres subchart enabled (this chart/app version hard-rejects embedded Derby — see spec), and configures an Ingress at `artifactory.local`. Four standalone bash scripts (`install-ingress.sh`, `deploy.sh`, `status.sh`, `teardown.sh`) wrap the Helm/kubectl calls.
 
 **Tech Stack:** Helm 3 (chart repos `jfrog` and `ingress-nginx` already added on this machine), kubectl, Docker Desktop Kubernetes, bash.
 
 ## Global Constraints
 
 - Target context is exactly `docker-desktop` — every script must verify `kubectl config current-context` equals `docker-desktop` before making changes, and abort with a clear message otherwise.
-- No TLS, no HA, single replica, embedded Derby DB (no Postgres) — per the approved spec at `docs/superpowers/specs/2026-07-24-jfrog-artifactory-oss-k8s-design.md`.
+- No TLS, no HA, single replica, PostgreSQL DB via the chart's bundled Postgres subchart (embedded Derby is not viable for this chart version — see spec) — per the approved spec at `docs/superpowers/specs/2026-07-24-jfrog-artifactory-oss-k8s-design.md`.
 - Every script starts with `set -euo pipefail` and checks required CLI tools are on `PATH` before doing anything else.
 - `deploy.sh` and `install-ingress.sh` must be idempotent (`helm upgrade --install`) — safe to re-run.
 - Verification must not require editing the Windows hosts file — use `curl --resolve` to fake DNS resolution for a single request instead, since editing system files is a change outside the project directory.
@@ -26,9 +26,9 @@
 **Interfaces:**
 - Produces: a values file consumed by `scripts/deploy.sh` via `-f "$SCRIPT_DIR/../values/artifactory-values.yaml"`.
 
-**Confirmed chart facts** (from `helm show values jfrog/artifactory-oss` and `helm pull --untar` inspection of chart `artifactory-oss` v107.146.29, done during planning):
+**Confirmed chart facts** (from `helm show values jfrog/artifactory-oss` and `helm pull --untar` inspection of chart `artifactory-oss` v107.146.29, done during planning; revised during Task 3 after a live deploy proved embedded Derby non-viable — see spec):
 - Everything nests under a top-level `artifactory:` key (the umbrella chart's dependency name).
-- `artifactory.postgresql.enabled` (default `true`) — set `false` to use embedded Derby.
+- `artifactory.postgresql.enabled` (default `true`) — leave at `true`. This chart/app version hard-rejects the embedded Derby database at startup (`DbTypeNotAllowedException`), so the bundled Postgres subchart is required.
 - `artifactory.nginx.enabled` (default `true`) — set `false`; we front the release with our own ingress-nginx instead of the chart's bundled nginx/LoadBalancer.
 - `artifactory.ingress.enabled` (default `false`) — set `true`; `artifactory.ingress.hosts` is a plain string list; `artifactory.ingress.className` sets `ingressClassName` (maps to `nginx`, the IngressClass the `ingress-nginx` chart creates).
 - `artifactory.artifactory.replicaCount` (default `1`) — leave at `1`.
@@ -45,9 +45,10 @@
 # Docker Desktop Kubernetes cluster. See:
 # docs/superpowers/specs/2026-07-24-jfrog-artifactory-oss-k8s-design.md
 artifactory:
-  # Use the embedded Derby database instead of the chart's bundled Postgres.
+  # This chart/app version hard-rejects the embedded Derby database at
+  # startup; use the chart's bundled Postgres subchart instead.
   postgresql:
-    enabled: false
+    enabled: true
 
   # We front Artifactory with our own ingress-nginx release (see
   # scripts/install-ingress.sh) instead of the chart's bundled nginx +
@@ -92,7 +93,7 @@ Run:
 grep -E "^kind:|^  name:" /tmp/rendered.yaml
 ```
 
-Expected: includes `kind: Service` / `name: artifactory`, `kind: StatefulSet` / `name: artifactory`, `kind: Ingress` / `name: artifactory`, and no `kind: Deployment` with `nginx` in the name (confirming `nginx.enabled: false` took effect) and no `kind: StatefulSet` named `artifactory-postgresql` (confirming `postgresql.enabled: false` took effect). Then delete the scratch file: `rm /tmp/rendered.yaml`.
+Expected: includes `kind: Service` / `name: artifactory`, `kind: StatefulSet` / `name: artifactory`, `kind: Ingress` / `name: artifactory`, `kind: StatefulSet` / `name: artifactory-postgresql` (confirming the bundled Postgres subchart is enabled), and no `kind: Deployment` with `nginx` in the name (confirming `nginx.enabled: false` took effect). Then delete the scratch file: `rm /tmp/rendered.yaml`.
 
 - [ ] **Step 4: Commit**
 

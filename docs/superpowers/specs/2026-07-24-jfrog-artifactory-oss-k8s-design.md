@@ -13,8 +13,13 @@ hostname, using scripts that make setup and teardown repeatable.
 - Deployment mechanism: official JFrog `artifactory-oss` Helm chart.
 - Ingress: `ingress-nginx` (official chart), installed as part of this
   project since Docker Desktop does not ship a controller by default.
-- Database: embedded Derby (bundled with the OSS chart) — no external
-  Postgres dependency.
+- Database: PostgreSQL, via the chart's bundled Postgres subchart
+  (`artifactory.postgresql.enabled: true`, its default) — still fully
+  self-contained on the same cluster, just a second pod. (Originally scoped
+  for embedded Derby; discovered during implementation that this chart/app
+  version — `artifactory-oss` v107.146.29 / appVersion 7.146.29 — hard-rejects
+  Derby at the database layer with `DbTypeNotAllowedException`, so Derby is
+  not a viable option for this chart version.)
 - Access: HTTP via Ingress at `artifactory.local` (no TLS).
 - Repository configuration inside Artifactory (Docker/Maven/npm repos) is
   out of scope — this project only gets Artifactory installed and reachable;
@@ -36,8 +41,9 @@ Traffic flow: browser → `http://artifactory.local` (resolved via a manual
 Artifactory Service → Artifactory pod.
 
 Persistence uses a PersistentVolumeClaim backed by Docker Desktop's default
-`hostpath` StorageClass. The deployment runs a single replica with modest
-resource requests/limits sized for a laptop, not a production cluster.
+`hostpath` StorageClass, for both the Artifactory pod and the chart's bundled
+PostgreSQL pod. The deployment runs a single replica with modest resource
+requests/limits sized for a laptop, not a production cluster.
 
 ## Components & Layout
 
