@@ -11,6 +11,13 @@ for cmd in kubectl curl; do
   fi
 done
 
+CONTEXT="$(kubectl config current-context)"
+if [ "$CONTEXT" != "docker-desktop" ]; then
+  echo "ERROR: current kubectl context is '$CONTEXT', expected 'docker-desktop'." >&2
+  echo "Switch with: kubectl config use-context docker-desktop" >&2
+  exit 1
+fi
+
 NAMESPACE="artifactory"
 HOST="artifactory.local"
 
