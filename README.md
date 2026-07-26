@@ -1,4 +1,4 @@
-# JFrog Artifactory OSS on Docker Desktop Kubernetes
+# k8s-local-artifact-registry
 
 Deploys JFrog Artifactory (open source edition) as a container registry
 on a local Docker Desktop Kubernetes cluster, reachable at
@@ -6,6 +6,28 @@ on a local Docker Desktop Kubernetes cluster, reachable at
 
 See `docs/superpowers/specs/2026-07-24-jfrog-artifactory-oss-k8s-design.md`
 for the full design.
+
+## Use case
+
+Useful when you want a private, disposable artifact/container registry
+running entirely on your own machine — no cloud account, no Docker Hub
+rate limits, no shared infrastructure to depend on. Typical scenarios:
+
+- **Local CI/CD testing** — push and pull images against a real registry
+  to validate build/publish pipelines before pointing them at a shared
+  or production registry.
+- **Learning/experimenting** — try out Docker, Maven, or npm repository
+  workflows against a real Artifactory instance without provisioning
+  anything remote.
+- **Offline or air-gapped development** — mirror or cache artifacts
+  locally when you don't want (or can't rely on) external network access.
+- **Disposable by design** — `teardown.sh` tears the whole thing down
+  cleanly, so you can spin it up only when needed and leave no lingering
+  cluster state.
+
+This project only stands up Artifactory and makes it reachable; it does
+not configure Docker/Maven/npm repositories inside it — see
+"Configuring repositories" below for that step.
 
 ## Prerequisites
 
